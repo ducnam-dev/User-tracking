@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import CarCard from './components/CarCard';
@@ -13,6 +13,16 @@ import {
   clearAllTrackingData,
   formatDuration,
 } from './utils/tracking';
+import {
+  IconSearch,
+  IconStar,
+  IconShield,
+  IconRefresh,
+  IconActivity,
+  IconPhone,
+  IconArrowRight,
+  IconCheck,
+} from './components/Icons';
 
 export default function App() {
   const [selectedBrand, setSelectedBrand] = useState('all');
@@ -23,7 +33,7 @@ export default function App() {
   const [selectedCar, setSelectedCar] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // State theo dõi hành vi người dùng (User Tracking Analytics)
+  // User Tracking Analytics state
   const [trackingData, setTrackingData] = useState(() => getTrackingData());
 
   const carsRef = useRef(null);
@@ -48,44 +58,41 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Xử lý khi người dùng click vào xem chi tiết một xe
+  // When user inspects a car
   const handleViewDetail = (car) => {
-    // 1. Tăng số lượt xem cho xe đó
     const updated = recordCarView(car.id);
     setTrackingData({ ...updated });
     setSelectedCar(car);
   };
 
-  // Xử lý khi đóng modal hoặc rời khỏi xem xe -> cộng dồn thời gian xem
+  // When user closes modal -> accumulate dwell time
   const handleRecordTimeSpent = (carId, seconds) => {
     if (seconds > 0) {
       const updated = recordCarTimeSpent(carId, seconds);
       setTrackingData({ ...updated });
-      const car = carsData.find(c => c.id === carId);
-      showToast(`⏱️ Đã ghi nhận bạn vừa xem ${car ? car.name : 'ô tô'} trong ${formatDuration(seconds)}`);
+      const car = carsData.find((c) => c.id === carId);
+      showToast(`Đã ghi nhận bạn vừa xem ${car ? car.name : 'ô tô'} trong ${formatDuration(seconds)}`);
     }
   };
 
-  // Nạp lại data demo mẫu
   const handleResetData = () => {
     const fresh = resetTrackingData();
     setTrackingData({ ...fresh });
-    showToast('🔄 Đã nạp lại dữ liệu thống kê mẫu!');
+    showToast('Đã nạp lại dữ liệu thống kê mẫu chuẩn!');
   };
 
-  // Xóa trắng toàn bộ về 0 để test từ đầu
   const handleClearData = () => {
     const empty = clearAllTrackingData();
     setTrackingData({ ...empty });
-    showToast('🗑️ Đã đặt tất cả lượt xem & thời gian về 0 để bạn kiểm tra từ đầu!');
+    showToast('Đã đặt toàn bộ dữ liệu User Tracking về 0 để kiểm tra từ đầu!');
   };
 
-  // Tìm ID xe có số lượt xem cao nhất hiện tại
+  // Leader car with max views
   const mostViewedCarId = useMemo(() => {
     let maxId = null;
     let maxViews = -1;
-    carsData.forEach(car => {
-      const v = (trackingData[car.id]?.views) || 0;
+    carsData.forEach((car) => {
+      const v = trackingData[car.id]?.views || 0;
       if (v > maxViews && v > 0) {
         maxViews = v;
         maxId = car.id;
@@ -94,52 +101,35 @@ export default function App() {
     return maxId;
   }, [trackingData]);
 
-  // Danh sách xe sau khi lọc và sắp xếp
+  // Filtered & sorted cars
   const filteredCars = useMemo(() => {
     let result = [...carsData];
 
-    // Lọc theo hãng xe
     if (selectedBrand !== 'all') {
-      result = result.filter(c => c.brand === selectedBrand);
+      result = result.filter((c) => c.brand === selectedBrand);
     }
-
-    // Lọc theo loại nhiên liệu
     if (fuelFilter !== 'all') {
-      result = result.filter(c => c.fuel === fuelFilter);
+      result = result.filter((c) => c.fuel === fuelFilter);
     }
-
-    // Lọc theo tình trạng xe mới/cũ
     if (typeFilter !== 'all') {
-      result = result.filter(c => c.type === typeFilter);
+      result = result.filter((c) => c.type === typeFilter);
     }
-
-    // Tìm kiếm theo từ khóa
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.brand.toLowerCase().includes(q) ||
-        c.description.toLowerCase().includes(q)
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.brand.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q)
       );
     }
 
-    // Sắp xếp
     switch (sortBy) {
       case 'views-desc':
-        // Sắp xếp theo xe được xem nhiều nhất
-        result.sort((a, b) => {
-          const vA = trackingData[a.id]?.views || 0;
-          const vB = trackingData[b.id]?.views || 0;
-          return vB - vA;
-        });
+        result.sort((a, b) => (trackingData[b.id]?.views || 0) - (trackingData[a.id]?.views || 0));
         break;
       case 'time-desc':
-        // Sắp xếp theo tổng thời gian người dùng xem lâu nhất
-        result.sort((a, b) => {
-          const tA = trackingData[a.id]?.totalTime || 0;
-          const tB = trackingData[b.id]?.totalTime || 0;
-          return tB - tA;
-        });
+        result.sort((a, b) => (trackingData[b.id]?.totalTime || 0) - (trackingData[a.id]?.totalTime || 0));
         break;
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);
@@ -154,7 +144,6 @@ export default function App() {
         result.sort((a, b) => b.rating - a.rating);
         break;
       default:
-        // Mặc định ưu tiên xe hot & mới
         result.sort((a, b) => {
           const order = { hot: 0, new: 1, normal: 2 };
           return (order[a.status] ?? 2) - (order[b.status] ?? 2);
@@ -165,112 +154,143 @@ export default function App() {
   }, [selectedBrand, fuelFilter, typeFilter, searchQuery, sortBy, trackingData]);
 
   return (
-    <>
-      {/* Navigation */}
+    <div className="site-canvas">
+      {/* Toast Alert HUD */}
+      {toast && (
+        <div className="telemetry-toast-hud" role="alert">
+          <span className="live-status-dot" />
+          <span className="toast-message">{toast}</span>
+        </div>
+      )}
+
+      {/* Main Navbar */}
       <Navbar onScrollTo={scrollTo} />
 
-      {/* Hero Banner */}
+      {/* Hero Section */}
       <Hero onExplore={() => scrollTo('cars')} />
 
-      {/* Search & Filter Section */}
-      <section className="search-section">
-        <div className="search-bar">
-          <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
-            <input
-              id="search-input"
-              type="text"
-              className="search-input"
-              placeholder="Tìm kiếm theo tên xe, hãng xe, đời xe..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      {/* Search & Precision Filter Console */}
+      <section className="search-console-section">
+        <div className="container">
+          <div className="search-console-card">
+            <div className="search-field">
+              <IconSearch size={18} className="field-icon" />
+              <input
+                id="search-input"
+                type="text"
+                className="console-input"
+                placeholder="Tìm kiếm mẫu xe, thương hiệu, công nghệ hoặc đời xe..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="select-fields-row">
+              <select
+                id="fuel-filter"
+                className="console-select"
+                value={fuelFilter}
+                onChange={(e) => setFuelFilter(e.target.value)}
+              >
+                <option value="all">Tất cả động cơ</option>
+                <option value="Xăng">Động cơ Xăng</option>
+                <option value="Dầu">Động cơ Diesel</option>
+                <option value="Điện">Động cơ Điện 100%</option>
+              </select>
+
+              <select
+                id="type-filter"
+                className="console-select"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">Tất cả tình trạng</option>
+                <option value="Mới">Xe mới 100%</option>
+                <option value="Cũ">Xe đã qua kiểm định</option>
+              </select>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-console-submit"
+                onClick={() => scrollTo('cars')}
+              >
+                <span>Lọc danh sách</span>
+                <IconArrowRight size={14} />
+              </button>
+            </div>
           </div>
-          <select
-            id="fuel-filter"
-            className="search-select"
-            value={fuelFilter}
-            onChange={(e) => setFuelFilter(e.target.value)}
-          >
-            <option value="all">⛽ Tất cả nhiên liệu</option>
-            <option value="Xăng">Xăng</option>
-            <option value="Dầu">Dầu (Diesel)</option>
-            <option value="Điện">Điện</option>
-          </select>
-          <select
-            id="type-filter"
-            className="search-select"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="all">🚗 Tất cả loại xe</option>
-            <option value="Mới">Xe mới 100%</option>
-            <option value="Cũ">Xe đã qua sử dụng</option>
-          </select>
-          <button
-            id="search-btn"
-            className="btn-search"
-            onClick={() => scrollTo('cars')}
-          >
-            🔍 Tìm kiếm
-          </button>
         </div>
       </section>
 
-      {/* Cars Section */}
-      <section className="section" ref={carsRef} id="cars">
+      {/* Fleet Catalog Section */}
+      <section className="section catalog-section" ref={carsRef} id="cars">
         <div className="container">
-          <div className="section-header">
-            <span className="section-label">Bộ Sưu Tập Xe</span>
-            <h2 className="section-title">Danh Sách Ô Tô Cần Bán</h2>
-            <p className="section-desc">
-              Khám phá các mẫu xe ô tô chất lượng cao. Mỗi lượt xem và thời gian xem của bạn đều được ghi nhận trực tiếp.
-            </p>
+          <div className="section-header-row">
+            <div>
+              <div className="section-kicker">
+                <span className="live-status-dot" />
+                <span>BỘ SƯU TẬP XE HIỆN DIỆN</span>
+              </div>
+              <h2 className="section-title">Danh Sách Ô Tô Tuyển Chọn</h2>
+              <p className="section-desc">
+                Mỗi thao tác chọn xem xe và thời gian dừng lại (Dwell Time) đều được hệ thống telemetry phân tích theo thời gian thực.
+              </p>
+            </div>
+
+            {/* Quick Live Tracking Banner */}
+            <div
+              className="telemetry-beacon-strip"
+              onClick={() => scrollTo('analytics')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="beacon-radar">
+                <span className="beacon-core" />
+                <span className="beacon-ring" />
+              </div>
+              <div className="beacon-text">
+                <span className="beacon-title">TELEMETRY RUNNING</span>
+                <span className="beacon-desc">Click vào xe bất kỳ để xem thời gian đếm & lượt truy cập tăng realtime</span>
+              </div>
+              <IconArrowRight size={14} className="beacon-arrow" />
+            </div>
           </div>
 
-          {/* Quick tracker banner */}
-          <div className="live-tracking-pill" onClick={() => scrollTo('analytics')}>
-            <span className="pulsing-radar"></span>
-            <span>Hệ thống User Tracking đang hoạt động: Click vào xe bất kỳ để xem thời gian đếm & lượt truy cập tăng realtime!</span>
-            <span className="pill-action">Xem báo cáo →</span>
-          </div>
-
-          {/* Brand Tabs */}
-          <div className="brand-tabs">
+          {/* Brand Filter Pills */}
+          <div className="brand-pills-scroll">
             {brands.map((brand) => (
               <button
                 key={brand.id}
-                className={`brand-tab ${selectedBrand === brand.id ? 'active' : ''}`}
+                type="button"
+                className={`brand-pill-btn ${selectedBrand === brand.id ? 'is-active' : ''}`}
                 onClick={() => setSelectedBrand(brand.id)}
               >
-                <span className="brand-icon">{brand.icon}</span>
-                {brand.name}
+                <span>{brand.name}</span>
               </button>
             ))}
           </div>
 
-          {/* Filter & Sort Bar */}
-          <div className="filter-bar">
-            <p className="results-count">
-              Hiển thị <strong>{filteredCars.length}</strong> / {carsData.length} mẫu xe
-            </p>
-            <div className="sort-group">
-              <label htmlFor="sort-select" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Sắp xếp theo:
-              </label>
+          {/* Sorting & Results Bar */}
+          <div className="catalog-toolbar">
+            <div className="results-indicator font-tabular">
+              Hiển thị <strong>{filteredCars.length}</strong> / {carsData.length} mẫu xe sẵn có
+            </div>
+
+            <div className="sort-control">
+              <label htmlFor="sort-select" className="sort-label">Sắp xếp theo:</label>
               <select
                 id="sort-select"
-                className="sort-select"
+                className="sort-dropdown"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="default">⭐ Mặc định: Nổi bật</option>
-                <option value="views-desc">👀 Xem nhiều nhất (User Tracking)</option>
-                <option value="time-desc">⏱️ Thời gian xem lâu nhất</option>
-                <option value="price-asc">💵 Giá: Thấp đến Cao</option>
-                <option value="price-desc">💎 Giá: Cao đến Thấp</option>
-                <option value="year-desc">📅 Năm sản xuất mới nhất</option>
-                <option value="rating">🌟 Đánh giá cao nhất</option>
+                <option value="default">Mặc định: Tiêu biểu</option>
+                <option value="views-desc">Lượt xem nhiều nhất (User Tracking)</option>
+                <option value="time-desc">Thời gian dừng xem lâu nhất (Dwell Time)</option>
+                <option value="price-asc">Giá bán: Thấp đến Cao</option>
+                <option value="price-desc">Giá bán: Cao đến Thấp</option>
+                <option value="year-desc">Đời xe: Mới nhất</option>
+                <option value="rating">Đánh giá người dùng cao nhất</option>
               </select>
             </div>
           </div>
@@ -282,7 +302,7 @@ export default function App() {
                 <CarCard
                   key={car.id}
                   car={car}
-                  animDelay={index * 60}
+                  animDelay={index * 40}
                   trackingInfo={trackingData[car.id]}
                   isMostViewed={car.id === mostViewedCarId}
                   onViewDetail={handleViewDetail}
@@ -290,21 +310,17 @@ export default function App() {
               ))}
             </div>
           ) : (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '80px 20px',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <div style={{ fontSize: '60px', marginBottom: '16px' }}>🔍</div>
-              <h3 style={{ fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                Không tìm thấy xe nào phù hợp
-              </h3>
-              <p>Thử điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm.</p>
+            <div className="empty-state-card">
+              <div className="empty-icon-box">
+                <IconSearch size={32} />
+              </div>
+              <h3 className="empty-title">Không tìm thấy mẫu xe tương thích</h3>
+              <p className="empty-desc">
+                Hãy thử thay đổi từ khóa tìm kiếm hoặc mở rộng các tiêu chí bộ lọc động cơ, tình trạng xe.
+              </p>
               <button
-                className="btn btn-primary"
-                style={{ marginTop: '20px' }}
+                type="button"
+                className="btn btn-secondary"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedBrand('all');
@@ -313,14 +329,15 @@ export default function App() {
                   setSortBy('default');
                 }}
               >
-                Xóa tất cả bộ lọc
+                <IconRefresh size={14} />
+                <span>Đặt lại tất cả bộ lọc</span>
               </button>
             </div>
           )}
         </div>
       </section>
 
-      {/* Analytics & User Tracking Dashboard Section */}
+      {/* Analytics & User Tracking Telemetry Section */}
       <div ref={analyticsRef}>
         <TrackingDashboard
           cars={carsData}
@@ -331,23 +348,30 @@ export default function App() {
         />
       </div>
 
-      {/* Features Section */}
-      <section className="features-section" id="features">
+      {/* Features & Exclusive Services */}
+      <section className="section features-section" id="features">
         <div className="container">
-          <div className="section-header">
-            <span className="section-label">Vì Sao Chọn AutoViet</span>
-            <h2 className="section-title">Dịch Vụ Đẳng Cấp & Uy Tín</h2>
+          <div className="section-header-center">
+            <div className="section-kicker">
+              <span>TIÊU CHUẨN AUTOVIET PRESTIGE</span>
+            </div>
+            <h2 className="section-title">Đặc Quyền Khách Hàng Cao Cấp</h2>
             <p className="section-desc">
-              Chúng tôi cam kết mang đến trải nghiệm mua xe minh bạch, tin cậy tuyệt đối
+              Cam kết mang đến trải nghiệm sở hữu xe minh bạch, tin cậy tuyệt đối và chế độ hậu mãi chu đáo nhất.
             </p>
           </div>
 
-          <div className="features-grid">
+          <div className="features-editorial-grid">
             {features.map((f, i) => (
-              <div className="feature-card" key={i}>
-                <div className="feature-icon">{f.icon}</div>
-                <h3 className="feature-title">{f.title}</h3>
-                <p className="feature-desc">{f.desc}</p>
+              <div className="feature-node" key={i}>
+                <div className="feature-icon-wrapper">
+                  {f.iconType === 'shield' && <IconShield size={24} />}
+                  {f.iconType === 'wallet' && <IconActivity size={24} />}
+                  {f.iconType === 'refresh' && <IconRefresh size={24} />}
+                  {f.iconType === 'truck' && <IconCheck size={24} />}
+                </div>
+                <h3 className="feature-node-title">{f.title}</h3>
+                <p className="feature-node-desc">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -355,24 +379,31 @@ export default function App() {
       </section>
 
       {/* Testimonials */}
-      <section className="section">
+      <section className="section testimonials-section">
         <div className="container">
-          <div className="section-header">
-            <span className="section-label">Ý Kiến Khách Hàng</span>
-            <h2 className="section-title">Khách Hàng Nói Gì Về AutoViet</h2>
+          <div className="section-header-center">
+            <div className="section-kicker">
+              <span>TRẢI NGHIỆM THỰC TẾ</span>
+            </div>
+            <h2 className="section-title">Khách Hàng Nói Về AutoViet</h2>
           </div>
 
-          <div className="testimonials-grid">
+          <div className="testimonials-editorial-grid">
             {testimonials.map((t) => (
               <div className="testimonial-card" key={t.id}>
-                <div className="testimonial-stars">{t.stars}</div>
-                <div className="testimonial-quote">"</div>
-                <p className="testimonial-text">{t.text}</p>
-                <div className="testimonial-author">
-                  <div className="author-avatar">{t.avatar}</div>
-                  <div>
-                    <div className="author-name">{t.author}</div>
-                    <div className="author-info">{t.info}</div>
+                <div className="testimonial-stars-row">
+                  {[...Array(5)].map((_, idx) => (
+                    <IconStar key={idx} size={14} className="star-gold" />
+                  ))}
+                </div>
+                <blockquote className="testimonial-quote">
+                  "{t.text}"
+                </blockquote>
+                <div className="testimonial-profile">
+                  <div className="profile-initial">{t.avatar}</div>
+                  <div className="profile-meta">
+                    <div className="profile-name">{t.author}</div>
+                    <div className="profile-info">{t.info}</div>
                   </div>
                 </div>
               </div>
@@ -381,110 +412,65 @@ export default function App() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta-section" id="contact">
-        <div className="cta-bg" />
-        <div className="cta-content container">
-          <h2 className="cta-title">
-            Sẵn sàng sở hữu <span style={{ color: 'var(--primary-light)' }}>chiếc xe mơ ước?</span>
-          </h2>
-          <p className="cta-desc">
-            Đội ngũ tư vấn viên của AutoViet luôn sẵn sàng hỗ trợ bạn 24/7. Hỗ trợ vay vốn và lái thử tại nhà miễn phí.
-          </p>
-          <div className="cta-buttons">
-            <button
-              className="btn btn-primary"
-              style={{ padding: '16px 40px', fontSize: '16px' }}
-              onClick={() => showToast('📞 Cảm ơn bạn! Chuyên viên sẽ gọi cho bạn trong ít phút.')}
-            >
-              📞 Gọi ngay: 1800 1234
-            </button>
-            <button
-              className="btn btn-ghost"
-              style={{ padding: '16px 40px', fontSize: '16px' }}
-              onClick={() => showToast('✉️ Tin nhắn của bạn đã được tiếp nhận!')}
-            >
-              ✉️ Để lại thông tin liên hệ
-            </button>
+      {/* Final Action / Hotline CTA */}
+      <section className="cta-banner-section" id="contact">
+        <div className="cta-backdrop-glow" />
+        <div className="container">
+          <div className="cta-editorial-box">
+            <div className="cta-left">
+              <span className="cta-eyebrow">KHỞI ĐẦU HÀNH TRÌNH MỚI</span>
+              <h2 className="cta-heading">Sẵn sàng trải nghiệm mẫu xe mơ ước của bạn?</h2>
+              <p className="cta-sub">
+                Đội ngũ cố vấn kỹ thuật và tài chính của AutoViet sẵn sàng đồng hành cùng bạn 24/7.
+              </p>
+            </div>
+            <div className="cta-right">
+              <a href="tel:18001234" className="btn btn-primary btn-xl">
+                <IconPhone size={18} />
+                <span>Hotline: 1800 1234</span>
+              </a>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xl"
+                onClick={() => {
+                  scrollTo('cars');
+                  showToast('Hãy chọn bất kỳ mẫu xe nào để đăng ký lái thử trực tiếp!');
+                }}
+              >
+                <span>Xem danh sách xe</span>
+                <IconArrowRight size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <div className="logo" style={{ marginBottom: 0 }}>
-                <div className="logo-icon">🚗</div>
-                <span className="logo-text">AutoViet</span>
-              </div>
-              <p>Sàn giao dịch ô tô uy tín hàng đầu Việt Nam. Tích hợp công nghệ User Tracking thông minh giúp theo dõi xu hướng mua sắm của người dùng.</p>
-              <div className="footer-social">
-                <button className="social-btn" title="Facebook">📘</button>
-                <button className="social-btn" title="Instagram">📷</button>
-                <button className="social-btn" title="YouTube">▶️</button>
-                <button className="social-btn" title="Zalo">💬</button>
-              </div>
+      <footer className="site-footer">
+        <div className="container footer-content-row">
+          <div className="footer-brand">
+            <div className="footer-logo">
+              AUTO<span className="accent-text">VIET</span>
             </div>
-
-            <div className="footer-col">
-              <h4>Mua xe</h4>
-              <ul className="footer-links">
-                <li><a href="#cars" onClick={(e) => { e.preventDefault(); scrollTo('cars'); }}>Xe mới 100%</a></li>
-                <li><a href="#cars" onClick={(e) => { e.preventDefault(); scrollTo('cars'); }}>Xe lướt đã qua sử dụng</a></li>
-                <li><a href="#analytics" onClick={(e) => { e.preventDefault(); scrollTo('analytics'); }}>Xe xem nhiều nhất</a></li>
-                <li><a href="#">Dự toán chi phí lăn bánh</a></li>
-                <li><a href="#">Đặt lịch lái thử tận nơi</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h4>Dịch vụ</h4>
-              <ul className="footer-links">
-                <li><a href="#">Gói vay ngân hàng ưu đãi</a></li>
-                <li><a href="#">Bảo hiểm thân vỏ toàn diện</a></li>
-                <li><a href="#">Hỗ trợ sang tên đổi chủ</a></li>
-                <li><a href="#">Phụ tùng phụ kiện chính hãng</a></li>
-                <li><a href="#">Xưởng dịch vụ đạt chuẩn</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h4>Thông tin liên hệ</h4>
-              <ul className="footer-links">
-                <li><a href="#">📍 123 Nguyễn Huệ, Quận 1, TP.HCM</a></li>
-                <li><a href="#">📞 Tổng đài miễn cước: 1800 1234</a></li>
-                <li><a href="#">✉️ cskh@autoviet.vn</a></li>
-                <li><a href="#">🕐 Giờ mở cửa: 08:00 - 21:00 hàng ngày</a></li>
-              </ul>
-            </div>
+            <p className="footer-tagline">
+              Hệ thống sàn giao dịch ô tô & nền tảng phân tích hành vi người dùng (User Tracking) hàng đầu Việt Nam.
+            </p>
           </div>
-
-          <div className="footer-bottom">
-            <p>© 2024 <span>AutoViet</span>. Tất cả quyền được bảo lưu.</p>
-            <p>Hệ thống có tích hợp <span>Realtime User Tracking Analytics</span></p>
+          <div className="footer-copyright">
+            © 2026 AutoViet Platform. Designed with Impeccable & Taste-Skill Standards.
           </div>
         </div>
       </footer>
 
-      {/* Car Detail Modal có tích hợp Live Dwell-Time Tracking */}
+      {/* Interactive Detail Modal with Realtime Chronometer */}
       {selectedCar && (
         <CarModal
           car={selectedCar}
+          onClose={() => setSelectedCar(null)}
           trackingInfo={trackingData[selectedCar.id]}
           onRecordTime={handleRecordTimeSpent}
-          onClose={() => setSelectedCar(null)}
         />
       )}
-
-      {/* Toast notification */}
-      {toast && (
-        <div className="toast">
-          <span className="toast-icon">ℹ️</span>
-          <span className="toast-text">{toast}</span>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

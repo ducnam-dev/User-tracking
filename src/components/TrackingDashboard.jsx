@@ -1,8 +1,18 @@
 import { formatDuration } from '../utils/tracking';
+import {
+  IconActivity,
+  IconEye,
+  IconClock,
+  IconArrowRight,
+  IconRefresh,
+  IconTrash,
+  IconSparkles,
+  IconCar,
+} from './Icons';
 
 export default function TrackingDashboard({ cars, trackingData, onSelectCar, onResetData, onClearData }) {
-  // Kết hợp data xe với dữ liệu tracking
-  const carsWithTracking = cars.map(car => {
+  // Combine car data with telemetry tracking records
+  const carsWithTracking = cars.map((car) => {
     const track = trackingData[car.id] || { views: 0, totalTime: 0, uniqueVisitors: [] };
     const views = track.views || 0;
     const totalTime = track.totalTime || 0;
@@ -17,138 +27,191 @@ export default function TrackingDashboard({ cars, trackingData, onSelectCar, onR
     };
   });
 
-  // Tìm xe xem nhiều nhất
+  // Top by views
   const sortedByViews = [...carsWithTracking].sort((a, b) => b.views - a.views);
   const mostViewedCar = sortedByViews[0] || null;
 
-  // Tìm xe có thời gian xem lâu nhất
+  // Top by total dwell time
   const sortedByTime = [...carsWithTracking].sort((a, b) => b.totalTime - a.totalTime);
   const mostEngagedCar = sortedByTime[0] || null;
 
-  // Tính tổng
+  // Fleet Totals
   const totalViews = carsWithTracking.reduce((sum, c) => sum + c.views, 0);
   const totalDuration = carsWithTracking.reduce((sum, c) => sum + c.totalTime, 0);
-  const maxViews = Math.max(...carsWithTracking.map(c => c.views), 1);
+  const maxViews = Math.max(...carsWithTracking.map((c) => c.views), 1);
+  const avgFleetDwell = totalViews > 0 ? Math.round(totalDuration / totalViews) : 0;
 
   return (
-    <section className="section tracking-dashboard-section" id="analytics">
+    <section className="section telemetry-section" id="analytics">
       <div className="container">
-        <div className="section-header">
-          <span className="section-label">Realtime User Analytics</span>
-          <h2 className="section-title">📊 Thống Kê Theo Dõi Người Dùng</h2>
-          <p className="section-desc">
-            Hệ thống tự động ghi nhận thời gian xem thực tế và xác định dòng xe nào đang nhận được nhiều sự quan tâm nhất
-          </p>
+        {/* Section Header */}
+        <div className="section-header-row">
+          <div>
+            <div className="section-kicker">
+              <span className="live-status-dot" />
+              <span>REAL-TIME USER TRACKING ENGINE</span>
+            </div>
+            <h2 className="section-title">Trung Tâm Phân Tích Hành Vi Người Dùng</h2>
+            <p className="section-desc">
+              Hệ thống tự động đo lường số lượt truy cập (Pageviews) và thời gian tương tác thực tế (Dwell Time) trên từng mẫu xe nhằm nhận diện xu hướng thị hiếu khách hàng.
+            </p>
+          </div>
+
+          {/* Quick controls */}
+          <div className="telemetry-controls-group">
+            <button
+              type="button"
+              className="btn btn-control"
+              onClick={onResetData}
+              title="Đặt lại bộ số liệu mẫu demo"
+            >
+              <IconRefresh size={14} />
+              <span>Nạp lại Data mẫu</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-control-danger"
+              onClick={onClearData}
+              title="Xóa trắng toàn bộ số liệu về 0 để thử nghiệm từ đầu"
+            >
+              <IconTrash size={14} />
+              <span>Đặt về 0 để Test</span>
+            </button>
+          </div>
         </div>
 
-        {/* Highlight Cards */}
-        <div className="analytics-summary-grid">
+        {/* Executive KPI Grid */}
+        <div className="telemetry-kpi-grid">
           {/* Card 1: Top 1 Lượt Xem */}
-          <div className="analytics-highlight-card top-viewed">
-            <div className="ah-badge">🏆 TOP 1 XEM NHIỀU NHẤT</div>
+          <div className="telemetry-kpi-card kpi-card-views">
+            <div className="kpi-header">
+              <span className="kpi-tag-cyan">TOP 1 VIEW COUNT</span>
+              <IconEye size={18} className="kpi-icon-cyan" />
+            </div>
+
             {mostViewedCar && (
-              <div className="ah-content">
-                <img src={mostViewedCar.image} alt={mostViewedCar.name} className="ah-car-thumb" />
-                <div className="ah-details">
-                  <h4 className="ah-car-name">{mostViewedCar.name}</h4>
-                  <div className="ah-metric-highlight">
-                    <span className="ah-number">{mostViewedCar.views}</span>
-                    <span className="ah-unit">lượt truy cập xem</span>
+              <div className="kpi-vehicle-showcase">
+                <img
+                  src={mostViewedCar.image}
+                  alt={mostViewedCar.name}
+                  className="kpi-thumb"
+                />
+                <div className="kpi-vehicle-info">
+                  <h4 className="kpi-vehicle-title">{mostViewedCar.name}</h4>
+                  <div className="kpi-main-metric">
+                    <span className="kpi-metric-number">{mostViewedCar.views}</span>
+                    <span className="kpi-metric-unit">lượt xem</span>
                   </div>
-                  <div className="ah-meta">
-                    <span>⏱️ Tổng thời gian: <strong>{formatDuration(mostViewedCar.totalTime)}</strong></span>
-                    <span>👥 {mostViewedCar.visitors} người xem</span>
+                  <div className="kpi-meta-line">
+                    <span>Tổng thời lượng: <strong>{formatDuration(mostViewedCar.totalTime)}</strong></span>
                   </div>
                   <button
-                    className="btn btn-primary ah-btn"
+                    type="button"
+                    className="btn-kpi-action"
                     onClick={() => onSelectCar(mostViewedCar)}
                   >
-                    Xem xe này ngay →
+                    <span>Xem xe này</span>
+                    <IconArrowRight size={13} />
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Card 2: Top 1 Thời Gian Dừng Xem */}
-          <div className="analytics-highlight-card top-time">
-            <div className="ah-badge">⏱️ XEM LÂU NHẤT (DWELL TIME)</div>
+          {/* Card 2: Top 1 Dwell Time */}
+          <div className="telemetry-kpi-card kpi-card-dwell">
+            <div className="kpi-header">
+              <span className="kpi-tag-amber">TOP 1 ENGAGEMENT (DWELL TIME)</span>
+              <IconClock size={18} className="kpi-icon-amber" />
+            </div>
+
             {mostEngagedCar && (
-              <div className="ah-content">
-                <img src={mostEngagedCar.image} alt={mostEngagedCar.name} className="ah-car-thumb" />
-                <div className="ah-details">
-                  <h4 className="ah-car-name">{mostEngagedCar.name}</h4>
-                  <div className="ah-metric-highlight">
-                    <span className="ah-number" style={{ color: '#4cc9f0' }}>{formatDuration(mostEngagedCar.totalTime)}</span>
-                    <span className="ah-unit">thời gian xem</span>
+              <div className="kpi-vehicle-showcase">
+                <img
+                  src={mostEngagedCar.image}
+                  alt={mostEngagedCar.name}
+                  className="kpi-thumb"
+                />
+                <div className="kpi-vehicle-info">
+                  <h4 className="kpi-vehicle-title">{mostEngagedCar.name}</h4>
+                  <div className="kpi-main-metric">
+                    <span className="kpi-metric-number text-amber">{formatDuration(mostEngagedCar.totalTime)}</span>
+                    <span className="kpi-metric-unit">thời gian dừng xem</span>
                   </div>
-                  <div className="ah-meta">
-                    <span>👁️ Lượt xem: <strong>{mostEngagedCar.views} lượt</strong></span>
-                    <span>⏱️ Trung bình: <strong>{formatDuration(mostEngagedCar.avgTime)}/lượt</strong></span>
+                  <div className="kpi-meta-line">
+                    <span>Trung bình: <strong>{formatDuration(mostEngagedCar.avgTime)}/lượt</strong></span>
                   </div>
                   <button
-                    className="btn btn-ghost ah-btn"
+                    type="button"
+                    className="btn-kpi-action"
                     onClick={() => onSelectCar(mostEngagedCar)}
                   >
-                    Xem xe này ngay →
+                    <span>Xem xe này</span>
+                    <IconArrowRight size={13} />
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Card 3: Thống Kê Tổng Quan */}
-          <div className="analytics-highlight-card global-stats">
-            <div className="ah-badge">📈 TỔNG QUAN HỆ THỐNG</div>
-            <div className="global-stats-list">
-              <div className="gs-item">
-                <span className="gs-label">Tổng lượt xem xe:</span>
-                <span className="gs-value">{totalViews.toLocaleString('vi-VN')}</span>
+          {/* Card 3: Fleet Overview Stats */}
+          <div className="telemetry-kpi-card kpi-card-summary">
+            <div className="kpi-header">
+              <span className="kpi-tag-slate">TỔNG HỢP HỆ THỐNG</span>
+              <IconActivity size={18} className="kpi-icon-slate" />
+            </div>
+
+            <div className="kpi-stat-stack">
+              <div className="stat-row">
+                <span className="stat-label">Tổng lượt xem ô tô</span>
+                <span className="stat-val font-tabular">{totalViews.toLocaleString('vi-VN')} lượt</span>
               </div>
-              <div className="gs-item">
-                <span className="gs-label">Tổng thời lượng xem:</span>
-                <span className="gs-value">{formatDuration(totalDuration)}</span>
+              <div className="stat-row">
+                <span className="stat-label">Tổng thời gian dừng xem</span>
+                <span className="stat-val font-tabular text-amber">{formatDuration(totalDuration)}</span>
               </div>
-              <div className="gs-item">
-                <span className="gs-label">Số mẫu ô tô được theo dõi:</span>
-                <span className="gs-value">{cars.length} mẫu xe</span>
+              <div className="stat-row">
+                <span className="stat-label">Mẫu xe trong hệ thống</span>
+                <span className="stat-val font-tabular">{cars.length} mẫu</span>
               </div>
-              <div className="gs-item">
-                <span className="gs-label">Thời gian xem TB toàn sàn:</span>
-                <span className="gs-value">{formatDuration(totalViews > 0 ? Math.round(totalDuration / totalViews) : 0)}</span>
+              <div className="stat-row">
+                <span className="stat-label">Thời gian xem TB / lượt</span>
+                <span className="stat-val font-tabular">{formatDuration(avgFleetDwell)}</span>
               </div>
             </div>
 
-            <div className="tracking-actions-row">
-              <button className="btn-small-reset" onClick={onResetData} title="Đặt lại dữ liệu mẫu demo">
-                🔄 Nạp lại data demo
-              </button>
-              <button className="btn-small-clear" onClick={onClearData} title="Xóa toàn bộ về 0 để test từ đầu">
-                🗑️ Đặt về 0 (Test mới)
-              </button>
+            <div className="kpi-status-footer">
+              <span className="live-status-dot" />
+              <span className="status-note">Cập nhật tự động sau mỗi phiên duyệt web</span>
             </div>
           </div>
         </div>
 
-        {/* Ranking Table */}
-        <div className="analytics-table-card">
-          <div className="at-header">
-            <h3 className="at-title">Bảng Xếp Hạng Quan Tâm Người Dùng (Live Rankings)</h3>
-            <span className="at-subtitle">Dữ liệu tự động cập nhật khi bạn click và xem thông tin ô tô</span>
+        {/* Live Ranking Table */}
+        <div className="telemetry-table-wrapper">
+          <div className="table-header-strip">
+            <div>
+              <h3 className="table-heading">Bảng Xếp Hạng Quan Tâm Người Dùng (Live Telemetry Ranking)</h3>
+              <p className="table-subheading">Xếp hạng theo tổng lượt xem và thời lượng dừng lại của khách hàng</p>
+            </div>
+            <div className="table-meta-badge">
+              <IconSparkles size={13} />
+              <span>DỮ LIỆU TỰ ĐỘNG LƯU TRỮ</span>
+            </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="analytics-table">
+          <div className="table-scroll-container">
+            <table className="telemetry-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>Hạng</th>
+                  <th style={{ width: '80px' }}>Thứ hạng</th>
                   <th>Mẫu Ô Tô</th>
-                  <th>Hãng</th>
-                  <th>Lượt Xem</th>
-                  <th>Tỉ lệ phổ biến</th>
-                  <th>Tổng Thời Gian Xem</th>
-                  <th>Thời Gian TB</th>
-                  <th style={{ textAlign: 'center' }}>Thao tác</th>
+                  <th>Hãng sản xuất</th>
+                  <th>Lượt xem</th>
+                  <th>Mức độ phổ biến</th>
+                  <th>Tổng thời lượng xem</th>
+                  <th>TB / lượt</th>
+                  <th style={{ textAlign: 'right' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,46 +219,58 @@ export default function TrackingDashboard({ cars, trackingData, onSelectCar, onR
                   const percent = Math.round((car.views / maxViews) * 100);
                   const isTop1 = idx === 0 && car.views > 0;
                   return (
-                    <tr key={car.id} className={isTop1 ? 'highlight-row' : ''}>
-                      <td className="rank-cell">
-                        {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                    <tr key={car.id} className={isTop1 ? 'row-leader' : ''}>
+                      <td className="cell-rank">
+                        <span className={`rank-badge rank-${idx + 1}`}>
+                          {String(idx + 1).padStart(2, '0')}
+                        </span>
                       </td>
-                      <td className="car-name-cell">
-                        <div className="car-name-wrapper">
-                          <img src={car.image} alt={car.name} className="table-car-img" />
-                          <div>
-                            <strong>{car.name}</strong>
-                            <div className="table-car-sub">{car.price} triệu • {car.year}</div>
+                      <td className="cell-car-profile">
+                        <div className="table-car-media">
+                          <img src={car.image} alt={car.name} className="table-car-thumb" />
+                          <div className="table-car-details">
+                            <span className="table-car-name">{car.name}</span>
+                            <span className="table-car-meta">
+                              {car.price.toLocaleString('vi-VN')} triệu • {car.year} • {car.fuel}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td><span className="badge badge-brand">{car.brand}</span></td>
                       <td>
-                        <strong className="view-count-text">
-                          {car.views}
-                        </strong>
-                        <span className="sub-unit"> lượt</span>
-                        {isTop1 && <span className="badge badge-hot mini-badge">Top 1</span>}
+                        <span className="brand-pill">{car.brand}</span>
                       </td>
-                      <td className="progress-cell">
-                        <div className="progress-bar-bg">
+                      <td>
+                        <div className="cell-views-block">
+                          <span className="views-primary font-tabular">{car.views}</span>
+                          <span className="views-sub">lượt</span>
+                        </div>
+                      </td>
+                      <td className="cell-progress">
+                        <div className="progress-track">
                           <div
-                            className="progress-bar-fill"
+                            className="progress-fill"
                             style={{ width: `${percent}%` }}
                           />
                         </div>
-                        <span className="progress-percent">{percent}%</span>
+                        <span className="progress-number font-tabular">{percent}%</span>
                       </td>
                       <td>
-                        <span className="time-badge">⏱️ {formatDuration(car.totalTime)}</span>
+                        <span className="dwell-pill font-tabular">
+                          <IconClock size={12} />
+                          <span>{formatDuration(car.totalTime)}</span>
+                        </span>
                       </td>
-                      <td>{formatDuration(car.avgTime)}</td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td className="cell-avg font-tabular">
+                        {formatDuration(car.avgTime)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
                         <button
-                          className="btn-table-action"
+                          type="button"
+                          className="btn-table-inspect"
                           onClick={() => onSelectCar(car)}
                         >
-                          👁️ Xem chi tiết
+                          <span>Xem chi tiết</span>
+                          <IconArrowRight size={13} />
                         </button>
                       </td>
                     </tr>

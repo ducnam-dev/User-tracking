@@ -1,16 +1,28 @@
 import { useEffect, useState, useRef } from 'react';
 import { formatDuration } from '../utils/tracking';
+import {
+  IconClose,
+  IconEye,
+  IconClock,
+  IconFuel,
+  IconGauge,
+  IconSeat,
+  IconShield,
+  IconCheck,
+  IconStar,
+  IconPhone,
+  IconActivity,
+} from './Icons';
 
 export default function CarModal({ car, onClose, trackingInfo, onRecordTime }) {
   const [secondsViewed, setSecondsViewed] = useState(0);
   const secondsRef = useRef(0);
 
-  // Cập nhật ref để lấy giá trị mới nhất khi unmount
   useEffect(() => {
     secondsRef.current = secondsViewed;
   }, [secondsViewed]);
 
-  // Bộ đếm thời gian xem xe realtime
+  // Realtime Dwell-Time Chronometer
   useEffect(() => {
     if (!car) return;
     setSecondsViewed(0);
@@ -22,14 +34,12 @@ export default function CarModal({ car, onClose, trackingInfo, onRecordTime }) {
 
     return () => {
       clearInterval(timer);
-      // Ghi nhận thời gian người này đã xem xe khi đóng popup
       if (secondsRef.current > 0 && onRecordTime) {
         onRecordTime(car.id, secondsRef.current);
       }
     };
   }, [car?.id]);
 
-  // Đóng modal khi nhấn phím Escape
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -44,131 +54,184 @@ export default function CarModal({ car, onClose, trackingInfo, onRecordTime }) {
 
   if (!car) return null;
 
-  const formatPrice = (price) => price.toLocaleString('vi-VN') + ' triệu';
-  const totalViews = trackingInfo ? (trackingInfo.views || 0) : 0;
-  const totalTime = trackingInfo ? (trackingInfo.totalTime || 0) : 0;
+  const formatPrice = (price) => {
+    if (price >= 1000) {
+      const ty = (price / 1000).toFixed(2).replace(/\.00$/, '');
+      return `${ty} Tỷ VNĐ (${price.toLocaleString('vi-VN')} Triệu)`;
+    }
+    return `${price.toLocaleString('vi-VN')} Triệu VNĐ`;
+  };
 
-  // Format giây xem thành mm:ss
-  const formatLiveTimer = (secs) => {
+  const totalViews = trackingInfo?.views || 0;
+  const totalTime = trackingInfo?.totalTime || 0;
+
+  const formatChronometer = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}s`;
   };
 
   return (
     <div
-      className="modal-overlay"
+      className="modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
+      role="dialog"
+      aria-modal="true"
     >
-      <div className="modal">
-        {/* Header / Image */}
-        <div className="modal-header">
+      <div className="modal-container">
+        {/* Modal Visual Header */}
+        <div className="modal-hero">
           <img
             src={car.image}
             alt={car.name}
-            className="modal-car-image"
+            className="modal-hero-img"
           />
-          <button className="modal-close" onClick={onClose} title="Đóng">
-            ✕
+          <div className="modal-hero-overlay" />
+
+          {/* Close button */}
+          <button
+            type="button"
+            className="modal-close-trigger"
+            onClick={onClose}
+            aria-label="Đóng cửa sổ"
+          >
+            <IconClose size={20} />
           </button>
 
-          {/* Floating Live Tracking Banner on Image */}
-          <div className="modal-live-tracker">
-            <span className="live-pulse" />
-            <span>Đang tính thời gian xem: </span>
-            <strong className="live-timer">{formatLiveTimer(secondsViewed)}</strong>
+          {/* Live Tracking HUD Banner */}
+          <div className="modal-hud-telemetry">
+            <span className="live-status-dot" />
+            <span className="hud-telemetry-text">ĐANG ĐO THỜI LƯỢNG QUAN TÂM (DWELL TIME):</span>
+            <span className="hud-telemetry-timer">{formatChronometer(secondsViewed)}</span>
+          </div>
+
+          <div className="modal-title-overlay">
+            <span className="modal-brand-tag">{car.brand} • {car.year}</span>
+            <h2 className="modal-car-heading">{car.name}</h2>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="modal-body">
-          {/* Tracking Stats Bar */}
-          <div className="modal-tracking-bar">
-            <div className="mt-item">
-              <span className="mt-icon">👁️</span>
-              <div>
-                <span className="mt-label">Lượt xem xe:</span>
-                <span className="mt-val">{totalViews} lượt</span>
+        {/* Modal Content Body */}
+        <div className="modal-content-scroll">
+          {/* Telemetry Realtime Metrics Ribbon */}
+          <div className="modal-telemetry-ribbon">
+            <div className="mtr-item">
+              <IconEye size={16} className="mtr-icon-cyan" />
+              <div className="mtr-text">
+                <span className="mtr-caption">Lượt xem xe này</span>
+                <span className="mtr-val">{totalViews} lượt</span>
               </div>
             </div>
-            <div className="mt-item">
-              <span className="mt-icon">⏱️</span>
-              <div>
-                <span className="mt-label">Tổng thời gian xem:</span>
-                <span className="mt-val">{formatDuration(totalTime + secondsViewed)}</span>
+            <div className="mtr-divider" />
+            <div className="mtr-item">
+              <IconClock size={16} className="mtr-icon-amber" />
+              <div className="mtr-text">
+                <span className="mtr-caption">Tổng thời lượng xem</span>
+                <span className="mtr-val">{formatDuration(totalTime + secondsViewed)}</span>
               </div>
             </div>
-            <div className="mt-item">
-              <span className="mt-icon">⏳</span>
-              <div>
-                <span className="mt-label">Phiên xem này:</span>
-                <span className="mt-val live-badge">{secondsViewed}s</span>
+            <div className="mtr-divider" />
+            <div className="mtr-item">
+              <IconActivity size={16} className="mtr-icon-green" />
+              <div className="mtr-text">
+                <span className="mtr-caption">Trạng thái ghi nhận</span>
+                <span className="mtr-val-live">Đang ghi vết</span>
               </div>
             </div>
           </div>
 
-          <p className="modal-brand">{car.brand}</p>
-          <h2 className="modal-title">{car.name}</h2>
-          <p className="modal-year">
-            Năm sản xuất: {car.year} &nbsp;|&nbsp; Màu sắc: {car.color} &nbsp;|&nbsp; Số km: {car.mileage}
-          </p>
-
-          {/* Specs Grid */}
-          <div className="modal-specs-grid">
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">⛽</div>
-              <div className="modal-spec-label">Nhiên liệu</div>
-              <div className="modal-spec-value">{car.fuel}</div>
+          {/* Price & Rating Header */}
+          <div className="modal-price-rating-row">
+            <div>
+              <span className="modal-label-sub">Giá chào bán chính thức</span>
+              <div className="modal-price-display">{formatPrice(car.price)}</div>
             </div>
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">⚙️</div>
-              <div className="modal-spec-label">Hộp số</div>
-              <div className="modal-spec-value">{car.transmission}</div>
-            </div>
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">🔧</div>
-              <div className="modal-spec-label">Động cơ</div>
-              <div className="modal-spec-value">{car.engine}</div>
-            </div>
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">💺</div>
-              <div className="modal-spec-label">Chỗ ngồi</div>
-              <div className="modal-spec-value">{car.seats} chỗ</div>
-            </div>
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">⭐</div>
-              <div className="modal-spec-label">Đánh giá</div>
-              <div className="modal-spec-value">{car.rating}/5 ({car.reviews})</div>
-            </div>
-            <div className="modal-spec-item">
-              <div className="modal-spec-icon">📋</div>
-              <div className="modal-spec-label">Tình trạng</div>
-              <div className="modal-spec-value">{car.type}</div>
+            <div className="modal-rating-badge">
+              <IconStar size={16} className="star-gold" />
+              <span className="m-score">{car.rating}</span>
+              <span className="m-reviews">/ 5.0 ({car.reviews} đánh giá)</span>
             </div>
           </div>
 
           {/* Description */}
-          <p className="modal-desc">{car.description}</p>
+          <div className="modal-description-box">
+            <h4 className="box-heading">Thông Tin Chi Tiết & Tình Trạng</h4>
+            <p className="modal-desc-body">{car.description}</p>
+          </div>
 
-          {/* Price + CTA */}
-          <div className="modal-price-row">
-            <div>
-              <p className="modal-price-label">Giá bán niêm yết</p>
-              <p className="modal-price-value">{formatPrice(car.price)}</p>
+          {/* Technical Specifications Matrix */}
+          <div className="modal-spec-section">
+            <h4 className="box-heading">Thông Số Kỹ Thuật Chính</h4>
+            <div className="modal-specs-matrix">
+              <div className="matrix-tile">
+                <IconFuel size={16} className="matrix-icon" />
+                <div>
+                  <span className="matrix-title">Nhiên liệu</span>
+                  <span className="matrix-value">{car.fuel}</span>
+                </div>
+              </div>
+              <div className="matrix-tile">
+                <IconGauge size={16} className="matrix-icon" />
+                <div>
+                  <span className="matrix-title">Hộp số</span>
+                  <span className="matrix-value">{car.transmission}</span>
+                </div>
+              </div>
+              <div className="matrix-tile">
+                <IconSeat size={16} className="matrix-icon" />
+                <div>
+                  <span className="matrix-title">Số chỗ ngồi</span>
+                  <span className="matrix-value">{car.seats} chỗ</span>
+                </div>
+              </div>
+              <div className="matrix-tile">
+                <IconShield size={16} className="matrix-icon" />
+                <div>
+                  <span className="matrix-title">Động cơ</span>
+                  <span className="matrix-value">{car.engine}</span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button className="btn-contact">
-                📞 Liên hệ báo giá
-              </button>
-              <button
-                className="btn btn-ghost"
-                style={{ borderRadius: 'var(--radius-sm)', padding: '12px 20px' }}
-              >
-                📅 Đặt lịch lái thử
-              </button>
+          </div>
+
+          {/* Inspection Guarantee */}
+          <div className="modal-guarantee-strip">
+            <div className="guarantee-icon-wrap">
+              <IconShield size={20} className="shield-icon" />
             </div>
+            <div className="guarantee-info">
+              <span className="guarantee-title">Tiêu chuẩn kiểm định AutoViet Certified 200 điểm</span>
+              <p className="guarantee-desc">
+                Cam kết không đâm đụng ngập nước, bảo hành động cơ và hộp số 12 tháng hoặc 20.000 km.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer Call To Action */}
+        <div className="modal-footer-cta">
+          <div className="footer-timer-note">
+            <IconClock size={14} />
+            <span>Thời lượng phiên xem này: <strong>{formatChronometer(secondsViewed)}</strong></span>
+          </div>
+          <div className="footer-actions-group">
+            <a href="tel:18001234" className="btn btn-secondary">
+              <IconPhone size={15} />
+              <span>Gọi tư vấn: 1800 1234</span>
+            </a>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                alert(`Đã gửi yêu cầu đăng ký lái thử mẫu xe: ${car.name}. Chuyên viên tư vấn sẽ liên hệ bạn ngay!`);
+                onClose();
+              }}
+            >
+              <IconCheck size={15} />
+              <span>Đăng ký lái thử xe này</span>
+            </button>
           </div>
         </div>
       </div>

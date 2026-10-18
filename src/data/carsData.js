@@ -174,38 +174,38 @@ export const carsData = [
 ];
 
 export const brands = [
-  { id: "all", name: "Tất cả", icon: "🚗" },
-  { id: "Toyota", name: "Toyota", icon: "🔵" },
-  { id: "Mercedes-Benz", name: "Mercedes", icon: "⭐" },
-  { id: "Honda", name: "Honda", icon: "🏁" },
-  { id: "BMW", name: "BMW", icon: "🔷" },
-  { id: "VinFast", name: "VinFast", icon: "🇻🇳" },
-  { id: "Hyundai", name: "Hyundai", icon: "🔶" },
-  { id: "Audi", name: "Audi", icon: "💎" },
-  { id: "Mazda", name: "Mazda", icon: "🔴" },
-  { id: "Ford", name: "Ford", icon: "🔵" },
+  { id: "all", name: "Tất cả thương hiệu" },
+  { id: "Toyota", name: "Toyota" },
+  { id: "Mercedes-Benz", name: "Mercedes-Benz" },
+  { id: "Honda", name: "Honda" },
+  { id: "BMW", name: "BMW" },
+  { id: "VinFast", name: "VinFast" },
+  { id: "Hyundai", name: "Hyundai" },
+  { id: "Audi", name: "Audi" },
+  { id: "Mazda", name: "Mazda" },
+  { id: "Ford", name: "Ford" },
 ];
 
 export const features = [
   {
-    icon: "🛡️",
+    iconType: "shield",
     title: "Bảo đảm chất lượng 100%",
-    desc: "Mỗi xe được kiểm định kỹ thuật tỉ mỉ bởi đội ngũ chuyên gia 15 năm kinh nghiệm trước khi giao đến tay khách hàng.",
+    desc: "Mỗi chiếc xe đều vượt qua 200 điểm kiểm định chuyên sâu bởi kỹ sư chuyên ngành trước khi bàn giao.",
   },
   {
-    icon: "💳",
-    title: "Hỗ trợ vay vốn dễ dàng",
-    desc: "Liên kết với 20+ ngân hàng lớn, lãi suất từ 5.9%/năm, thủ tục nhanh chóng, duyệt vay trong 24 giờ.",
+    iconType: "wallet",
+    title: "Gói hỗ trợ tài chính ưu việt",
+    desc: "Liên kết với hơn 20 tổ chức tài chính uy tín, duyệt hồ sơ hạn mức cao trong 24 giờ với lãi suất minh bạch.",
   },
   {
-    icon: "🔄",
-    title: "Đổi trả trong 7 ngày",
-    desc: "Không hài lòng? Chúng tôi hoàn tiền 100% hoặc đổi xe khác trong vòng 7 ngày kể từ ngày mua.",
+    iconType: "refresh",
+    title: "Đặc quyền đổi trả 7 ngày",
+    desc: "Hoàn tiền hoặc đổi sản phẩm tương đương trong 7 ngày nếu xuất hiện bất kỳ sai lệch nào so với hồ sơ cam kết.",
   },
   {
-    icon: "🚚",
-    title: "Giao xe tận nơi miễn phí",
-    desc: "Dịch vụ giao xe tận nhà miễn phí trong bán kính 50km. Toàn quốc với phí vận chuyển hợp lý.",
+    iconType: "truck",
+    title: "Bàn giao xe tận nơi toàn quốc",
+    desc: "Dịch vụ giao xe chuyên dụng tận nhà trên toàn quốc với quy trình kiểm tra xe và ký biên bản minh bạch.",
   },
 ];
 
