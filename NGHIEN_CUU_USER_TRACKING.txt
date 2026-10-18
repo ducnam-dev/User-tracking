@@ -1,0 +1,381 @@
+================================================================================
+                    BÁO CÁO NGHIÊN CỨU VỀ USER TRACKING
+     (WHAT - HOW: CƠ CHẾ LẤY DỮ LIỆU TỪ FE VỀ BE - ỨNG DỤNG & CASE STUDY)
+================================================================================
+
+Người thực hiện: Nhóm Nghiên cứu & Phát triển Web
+Đề tài: Ứng dụng User Tracking trong Nền tảng Thương mại Điện tử Ô tô
+Ngày cập nhật: 16/10/2026
+
+--------------------------------------------------------------------------------
+MỤC LỤC:
+1. WHAT: User Tracking là gì?
+   1.1. Định nghĩa và Bản chất
+   1.2. Các chỉ số cốt lõi được theo dõi (Core Metrics)
+2. HOW: CƠ CHẾ LẤY VÀ TRUYỀN DỮ LIỆU TỪ FRONTEND (FE) VỀ BACKEND (BE)
+   2.1. Sơ đồ quy trình tổng quan (Architecture & Data Flow)
+   2.2. Cấu trúc gói tin dữ liệu (JSON Payload Standard)
+   2.3. Các kỹ thuật FE dùng để gửi dữ liệu về BE:
+        - Kỹ thuật 1: Fetch API / Axios (REST API - POST Request thông thường)
+        - Kỹ thuật 2: navigator.sendBeacon() (Chuẩn vàng xử lý đóng tab/rời trang)
+        - Kỹ thuật 3: Gom lô sự kiện (Batching Event Queue giảm tải Server)
+   2.4. Phía Backend tiếp nhận và xử lý như thế nào? (Java Spring Boot REST API)
+        - DTO tiếp nhận dữ liệu
+        - RestController và Service xử lý
+   2.5. Thiết kế Cơ sở dữ liệu lưu trữ (Database Schema: PostgreSQL/MySQL)
+3. ỨNG DỤNG: User Tracking dùng để làm gì?
+   3.1. Tối ưu hóa trải nghiệm người dùng (UX/UI Optimization)
+   3.2. Hệ thống gợi ý và cá nhân hóa (Recommendation Engine)
+   3.3. Phân tích phễu chuyển đổi kinh doanh (Conversion Funnel Analysis)
+   3.4. Chiến dịch tiếp thị lại (Retargeting & Remarketing)
+   3.5. Hỗ trợ chiến lược kinh doanh và nhập hàng thực tế
+4. CASE STUDY: Áp dụng trên Website Bán Ô Tô (Auto Sales Platform)
+   4.1. Bài toán đặt ra
+   4.2. Giải pháp kỹ thuật đã hiện thực trên Web Demo
+   4.3. Kết quả mang lại cho doanh nghiệp
+5. THÁCH THỨC VÀ BẢO MẬT QUYỀN RIÊNG TƯ (Privacy, GDPR & Ethics)
+================================================================================
+
+
+--------------------------------------------------------------------------------
+1. WHAT: USER TRACKING LÀ GÌ?
+--------------------------------------------------------------------------------
+
+1.1. Định nghĩa và Bản chất:
+   - User Tracking (Theo dõi hành vi người dùng) là quá trình tự động thu thập,
+     ghi nhận, lưu trữ và phân tích các tương tác số (digital footprints) của người
+     dùng khi họ duyệt web hoặc sử dụng ứng dụng.
+   - Bản chất: Chuyển đổi các hành động vô hình (rê chuột, cuộn trang, dừng mắt xem,
+     click nút) thành các dữ liệu định lượng (Quantitative Data) có thể đo đạc và 
+     thống kê được.
+
+1.2. Các chỉ số cốt lõi được theo dõi (Core Metrics):
+   a) Pageviews & View Count (Lượt xem):
+      - Đếm số lần một trang, một khối nội dung, hoặc một sản phẩm cụ thể được hiển thị.
+      - Unique Pageviews: Đếm số người dùng khác nhau đã xem sản phẩm đó (tránh tính
+        trùng khi 1 người reload liên tục).
+   b) Dwell Time / Time Spent (Thời gian dừng lại xem):
+      - Thời gian người dùng thực sự lưu lại và tương tác với một sản phẩm hoặc một
+        khối giao diện cụ thể trước khi rời đi.
+      - Đây là thước đo chuẩn xác nhất về "Độ hấp dẫn" (Engagement Level) của sản phẩm.
+   c) Click-Through Rate (CTR) & Click Events:
+      - Vị trí các nút bấm được click: "Xem chi tiết", "Đăng ký lái thử", "Gọi hotline".
+   d) Scroll Depth (Độ sâu cuộn trang):
+      - Mức độ cuộn trang để đánh giá người dùng đọc đến phần nào của nội dung xe.
+   e) Exit Rate & Bounce Rate:
+      - Tỉ lệ thoát khỏi trang web tại một điểm cụ thể.
+
+
+--------------------------------------------------------------------------------
+2. HOW: CƠ CHẾ LẤY VÀ TRUYỀN DỮ LIỆU TỪ FRONTEND (FE) VỀ BACKEND (BE)
+--------------------------------------------------------------------------------
+
+2.1. Sơ đồ quy trình tổng quan (Architecture & Data Flow):
+
+   [ NGƯỜI DÙNG DUYỆT XE TRÊN TRÌNH DUYỆT ]
+                      │
+                      ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │ FRONTEND (React.js / JavaScript)                            │
+   │  1. Lắng nghe sự kiện (Click xem xe, Cuộn trang)            │
+   │  2. Khởi động Timer: timestamp_start = Date.now()           │
+   │  3. Khi đóng Modal/rời trang: Tính dwellTimeSeconds         │
+   │  4. Đóng gói thành JSON Payload                             │
+   └─────────────────────────────────────────────────────────────┘
+                      │
+                      │  (Gửi qua HTTP POST / navigator.sendBeacon)
+                      ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │ BACKEND (Java Spring Boot / Node.js REST API)               │
+   │  1. Controller tiếp nhận Request Body JSON                  │
+   │  2. Validate dữ liệu (kiểm tra CarID, VisitorID hợp lệ)     │
+   │  3. Ghi nhận lượt xem và thời lượng vào Service             │
+   └─────────────────────────────────────────────────────────────┘
+                      │
+                      │  (Thực thi câu lệnh SQL / ORM JPA)
+                      ▼
+   ┌─────────────────────────────────────────────────────────────┐
+   │ DATABASE (PostgreSQL / MySQL / Redis)                       │
+   │  1. Bảng `car_view_logs`: Lưu vết từng phiên xem            │
+   │  2. Bảng `car_statistics`: Cập nhật tổng views, tổng thời gian│
+   └─────────────────────────────────────────────────────────────┘
+                      │
+                      ▼  (Trả ngược số liệu thống kê)
+   ┌─────────────────────────────────────────────────────────────┐
+   │ FRONTEND DASHBOARD: Hiển thị Live Rankings & Xe Hot Nhất   │
+   └─────────────────────────────────────────────────────────────┘
+
+
+2.2. Cấu trúc gói tin dữ liệu (JSON Payload Standard):
+   Khi có một sự kiện người dùng xem ô tô, FE sẽ đóng gói một đối tượng JSON chuẩn:
+
+   {
+     "visitorId": "user_7x9a2k1",
+     "carId": 2,
+     "carName": "Mercedes C200 AMG",
+     "eventType": "CAR_VIEW_DETAIL",
+     "dwellTimeSeconds": 18,
+     "timestamp": 1729087200000,
+     "metadata": {
+       "device": "Desktop",
+       "browser": "Chrome",
+       "screenResolution": "1920x1080",
+       "referrer": "https://google.com"
+     }
+   }
+
+
+2.3. Các kỹ thuật FE dùng để gửi dữ liệu về BE:
+
+   a) Kỹ thuật 1: Sử dụng Fetch API / Axios (REST API - POST Request thông thường)
+      - Áp dụng khi người dùng thực hiện thao tác bình thường (bấm nút "Xem chi tiết",
+        bấm chọn bộ lọc hãng xe, chuyển giữa các xe).
+      - Code minh họa Frontend:
+        -------------------------------------------------------------
+        async function sendTrackingToBackend(payload) {
+          try {
+            const response = await fetch('http://localhost:8080/api/tracking/view', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            console.log("BE đã ghi nhận tracking:", data);
+          } catch (error) {
+            console.error("Lỗi khi gửi tracking lên BE:", error);
+          }
+        }
+        -------------------------------------------------------------
+
+   b) Kỹ thuật 2: navigator.sendBeacon() (Chuẩn vàng xử lý đóng tab / rời trang)
+      - VẤN ĐỀ LỚN TRONG THỰC TẾ: Khi người dùng đang xem xe rồi bất ngờ TẮT TAB
+        hoặc TẮT TRÌNH DUYỆT, lệnh `fetch()` hoặc `axios` thông thường sẽ bị trình
+        duyệt HỦY NGAY LẬP TỨC (Status: Canceled). Kết quả: Mất toàn bộ thời gian
+        người dùng đã dừng lại xem xe!
+      - GIẢI PHÁP: Trình duyệt hỗ trợ API đặc biệt `navigator.sendBeacon()`.
+        Hàm này chạy tiến trình ngầm độc lập ở tầng Browser/Hệ điều hành, đảm bảo
+        100% dữ liệu được truyền tới Backend ngay cả khi tab đã đóng hoàn toàn.
+      - Code minh họa Frontend:
+        -------------------------------------------------------------
+        window.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') {
+            const payload = JSON.stringify({
+              carId: currentCarId,
+              visitorId: getVisitorId(),
+              dwellTimeSeconds: currentDwellTime,
+              timestamp: Date.now()
+            });
+
+            // Gửi ngầm qua sendBeacon, không bị hủy khi đóng trang
+            navigator.sendBeacon('http://localhost:8080/api/tracking/dwell-time', payload);
+          }
+        });
+        -------------------------------------------------------------
+
+   c) Kỹ thuật 3: Gom lô sự kiện (Batching Event Queue giảm tải Server)
+      - Nếu trang web có 1000 người online cùng lúc, việc gửi request liên tục từng
+        giây sẽ gây nghẽn Server (tương tự hiện tượng tự DDoS).
+      - Giải pháp: FE sử dụng một hàng đợi (Queue). Cứ mỗi 10 giây hoặc khi tích lũy
+        đủ 5 sự kiện thì FE mới gửi 1 request đóng gói toàn bộ mảng sự kiện về BE.
+      - Code minh họa Frontend:
+        -------------------------------------------------------------
+        let eventQueue = [];
+
+        function trackEvent(event) {
+          eventQueue.push(event);
+          if (eventQueue.length >= 5) {
+            flushEvents();
+          }
+        }
+
+        function flushEvents() {
+          if (eventQueue.length === 0) return;
+          fetch('http://localhost:8080/api/tracking/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ events: eventQueue })
+          });
+          eventQueue = []; // Reset hàng đợi
+        }
+        -------------------------------------------------------------
+
+
+2.4. Phía Backend tiếp nhận và xử lý như thế nào? (Java Spring Boot REST API):
+
+   a) Bước 1: Tạo DTO tiếp nhận dữ liệu từ FE
+      -------------------------------------------------------------
+      // File: TrackingRequestDto.java
+      package com.autoviet.dto;
+
+      public class TrackingRequestDto {
+          private String visitorId;
+          private Long carId;
+          private String eventType;
+          private Integer dwellTimeSeconds;
+          private Long timestamp;
+
+          // Constructors, Getters & Setters
+          public Long getCarId() { return carId; }
+          public void setCarId(Long carId) { this.carId = carId; }
+
+          public String getVisitorId() { return visitorId; }
+          public void setVisitorId(String visitorId) { this.visitorId = visitorId; }
+
+          public Integer getDwellTimeSeconds() { return dwellTimeSeconds; }
+          public void setDwellTimeSeconds(Integer dwellTimeSeconds) { this.dwellTimeSeconds = dwellTimeSeconds; }
+      }
+      -------------------------------------------------------------
+
+   b) Bước 2: Tạo RestController tiếp nhận Request từ FE
+      -------------------------------------------------------------
+      // File: TrackingController.java
+      package com.autoviet.controller;
+
+      import com.autoviet.dto.TrackingRequestDto;
+      import com.autoviet.service.TrackingService;
+      import org.springframework.beans.factory.annotation.Autowired;
+      import org.springframework.http.ResponseEntity;
+      import org.springframework.web.bind.annotation.*;
+
+      import java.util.Map;
+
+      @RestController
+      @RequestMapping("/api/tracking")
+      @CrossOrigin(origins = "http://localhost:5173") // Cho phép FE React gọi qua
+      public class TrackingController {
+
+          @Autowired
+          private TrackingService trackingService;
+
+          // Endpoint nhận tương tác xem ô tô từ FE
+          @PostMapping("/view")
+          public ResponseEntity<?> recordCarView(@RequestBody TrackingRequestDto request) {
+              if (request.getCarId() == null) {
+                  return ResponseEntity.badRequest().body("Lỗi: Mã xe không được để trống!");
+              }
+
+              // Gọi Service lưu vào Cơ sở dữ liệu
+              trackingService.recordInteraction(
+                  request.getCarId(),
+                  request.getVisitorId(),
+                  request.getDwellTimeSeconds() != null ? request.getDwellTimeSeconds() : 0
+              );
+
+              return ResponseEntity.ok(Map.of(
+                  "status", "SUCCESS",
+                  "message", "Đã ghi nhận dữ liệu tracking thành công"
+              ));
+          }
+
+          // Endpoint cung cấp bảng xếp hạng xe xem nhiều nhất cho FE hiển thị Dashboard
+          @GetMapping("/rankings")
+          public ResponseEntity<?> getTopViewedCars() {
+              return ResponseEntity.ok(trackingService.getRankings());
+          }
+      }
+      -------------------------------------------------------------
+
+
+2.5. Thiết kế Cơ sở dữ liệu lưu trữ (Database Schema: PostgreSQL/MySQL):
+   Để hệ thống vừa lưu được lịch sử chi tiết vừa truy vấn bảng xếp hạng tốc độ cao:
+
+   -- 1. Bảng ghi log từng lần tương tác (để làm báo cáo lịch sử chi tiết)
+   CREATE TABLE car_view_logs (
+       id BIGSERIAL PRIMARY KEY,
+       visitor_id VARCHAR(64) NOT NULL,
+       car_id BIGINT NOT NULL,
+       dwell_time_seconds INT DEFAULT 0,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+
+   -- 2. Bảng tổng hợp số liệu (để FE gọi lấy bảng xếp hạng cực nhanh, không cần SCAN bảng log)
+   CREATE TABLE car_statistics (
+       car_id BIGINT PRIMARY KEY,
+       total_views BIGINT DEFAULT 0,
+       total_dwell_time BIGINT DEFAULT 0,
+       unique_visitors_count BIGINT DEFAULT 0,
+       last_viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+
+
+--------------------------------------------------------------------------------
+3. ỨNG DỤNG: USER TRACKING DÙNG ĐỂ LÀM GÌ?
+--------------------------------------------------------------------------------
+
+3.1. Tối ưu hóa trải nghiệm người dùng (UX/UI Optimization):
+   - Phát hiện điểm tắc nghẽn: Xem người dùng bỏ đi ở bước nào (xem ảnh xe xong thoát
+     ngay hay dừng lại đọc bảng thông số động cơ).
+   - Tối ưu vị trí thông tin: Đặt những thông số được xem nhiều nhất (mức tiêu thụ
+     nhiên liệu, giá lăn bánh) lên vị trí đầu tiên.
+
+3.2. Hệ thống gợi ý và cá nhân hóa (Recommendation Engine):
+   - Phân tích sở thích: Khách hàng dành phần lớn thời gian xem dòng SUV gầm cao của
+     Toyota và Honda -> Hệ thống tự động ưu tiên gợi ý các dòng xe SUV tương tự lên đầu.
+   - Gợi ý xe theo tầm ngân sách khách hàng thường xuyên dừng lại xem.
+
+3.3. Phân tích phễu chuyển đổi kinh doanh (Conversion Funnel Analysis):
+   - Theo dõi từng nấc thang chuyển đổi:
+       [10.000 Lượt lướt qua danh sách ô tô]
+           ↓ (Tỉ lệ mở xem: 25%)
+       [2.500 Lượt mở xem chi tiết kỹ thuật]
+           ↓ (Tỉ lệ quan tâm sâu: 16%)
+       [400 Lượt bấm nút "Đăng ký lái thử / Gọi Hotline"]
+           ↓ (Tỉ lệ chốt đơn: 20%)
+       [80 Khách hàng ký hợp đồng mua xe]
+   - Giúp doanh nghiệp biết khâu nào đang yếu để tối ưu hóa kịp thời.
+
+3.4. Chiến dịch tiếp thị lại (Retargeting & Remarketing):
+   - Nếu khách hàng nán lại xem mẫu xe Mercedes C200 AMG hơn 3 phút nhưng chưa mua:
+     Hệ thống kích hoạt chiến dịch gửi email ưu đãi giảm 10 triệu hoặc hiển thị banner
+     nhắc nhở chiếc xe đó khi họ quay lại.
+
+3.5. Hỗ trợ chiến lược kinh doanh và nhập hàng thực tế:
+   - Đại lý dựa vào bảng xếp hạng "Top xe được xem nhiều nhất" để chủ động nhập thêm
+     các phiên bản màu sắc và dòng xe đang hot, hạn chế đọng vốn ở các mẫu xe ít người quan tâm.
+
+
+--------------------------------------------------------------------------------
+4. CASE STUDY: ÁP DỤNG TRÊN WEBSITE BÁN Ô TÔ (CAR SALES PLATFORM)
+--------------------------------------------------------------------------------
+
+4.1. Bài toán đặt ra:
+   - Website cần theo dõi hành vi xem xe của khách hàng: xe nào được mở xem nhiều nhất,
+     khách hàng dành bao nhiêu giây để xem mỗi xe.
+
+4.2. Giải pháp kỹ thuật đã hiện thực trên Web Demo:
+   - Module `tracking.js`: Quản lý lưu trữ trạng thái người dùng (VisitorID, views, totalTime).
+   - Live Dwell-Time Tracker: Khi mở Modal xem chi tiết xe, đồng hồ đếm giây hoạt động
+     thời gian thực (`00:08s`, `00:09s`...).
+   - Bảng điều khiển phân tích `TrackingDashboard`:
+     + Card Top 1 Xe Xem Nhiều Nhất: Tự động gắn huy hiệu vàng "🏆 TOP 1 XEM NHIỀU NHẤT".
+     + Card Top 1 Xe Xem Lâu Nhất: Tuyên dương dòng xe có mức độ quan tâm cao nhất.
+     + Bảng xếp hạng trực quan với Progress Bar tỉ lệ phần trăm.
+     + Bộ lọc sắp xếp: "👀 Xem nhiều nhất" và "⏱️ Thời gian xem lâu nhất".
+
+4.3. Kết quả mang lại:
+   - Giúp cả khách hàng lẫn người quản trị nắm bắt ngay xu hướng thị trường đang đổ
+     dồn sự chú ý vào mẫu xe nào.
+
+
+--------------------------------------------------------------------------------
+5. THÁCH THỨC VÀ BẢO MẬT QUYỀN RIÊNG TƯ (PRIVACY, GDPR & ETHICS)
+--------------------------------------------------------------------------------
+
+5.1. Các quy chuẩn pháp lý quốc tế:
+   - Tuân thủ GDPR / CCPA: Không thu thập dữ liệu nhạy cảm cá nhân khi chưa được phép.
+   - Cơ chế Cookie Consent: Xin phép người dùng trước khi kích hoạt mã tracking.
+
+5.2. Giải pháp kỹ thuật an toàn:
+   - Ẩn danh hóa (Data Anonymization): Chỉ dùng VisitorID ngẫu nhiên, không lưu thông
+     tin định danh cá nhân trái phép.
+   - Mã hóa đường truyền bằng HTTPS/TLS.
+
+================================================================================
+KẾT LUẬN:
+User Tracking là cầu nối kỹ thuật quan trọng giữa Frontend và Backend. Bằng cách
+kết hợp hài hòa giữa các kỹ thuật Client-side (Fetch, sendBeacon, Batching) và 
+REST API phía Backend (Spring Boot), hệ thống đảm bảo thu thập dữ liệu hành vi 
+chuẩn xác, toàn vẹn và tối ưu hóa tối đa hiệu quả kinh doanh cho sàn thương mại điện tử.
+================================================================================
